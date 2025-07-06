@@ -27,7 +27,11 @@ jobs:
           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           aws-region: ${{ secrets.AWS_REGION }}
 
-      # ───── STEP 1: Apply or Destroy VPC ─────
+      - name: Determine Action Type
+        id: action_type
+        run: |
+          echo "SOURCE_BRANCH=${{ github.event.pull_request.head.ref }}" >> $GITHUB_ENV
+
       - name: Init VPC
         run: cd Environment/Dev/VPC && terraform init
 
@@ -37,13 +41,14 @@ jobs:
       - name: Apply or Destroy VPC
         run: |
           cd Environment/Dev/VPC
-          if [[ "${{ github.head_ref }}" == "apply" ]]; then
+          if [[ "${SOURCE_BRANCH}" == "apply" ]]; then
             terraform apply -auto-approve
-          elif [[ "${{ github.head_ref }}" == "destroy" ]]; then
+          elif [[ "${SOURCE_BRANCH}" == "destroy" ]]; then
             terraform destroy -auto-approve
+          else
+            echo "Not an apply/destroy branch, skipping VPC changes."
           fi
 
-      # ───── STEP 2: Apply or Destroy EKS ─────
       - name: Init EKS
         run: cd Environment/Dev/EKS && terraform init
 
@@ -53,8 +58,10 @@ jobs:
       - name: Apply or Destroy EKS
         run: |
           cd Environment/Dev/EKS
-          if [[ "${{ github.head_ref }}" == "apply" ]]; then
+          if [[ "${SOURCE_BRANCH}" == "apply" ]]; then
             terraform apply -auto-approve
-          elif [[ "${{ github.head_ref }}" == "destroy" ]]; then
+          elif [[ "${SOURCE_BRANCH}" == "destroy" ]]; then
             terraform destroy -auto-approve
+          else
+            echo "Not an apply/destroy branch, skipping EKS changes."
           fi
