@@ -8,7 +8,7 @@ data "terraform_remote_state" "vpc" {
   config = {
     bucket = "mayur-terraform-states"
     key    = "Dev/EKS/terraform.tfstate"
-    region = var.aws_region
+    region = "us-east-1"
   }
 }
 
