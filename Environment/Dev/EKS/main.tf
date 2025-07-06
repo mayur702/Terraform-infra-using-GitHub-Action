@@ -2,6 +2,16 @@ provider "aws" {
   region = var.aws_region
 }
 
+# ✅ Add this: Remote state to fetch VPC outputs
+data "terraform_remote_state" "vpc" {
+  backend = "s3"
+  config = {
+    bucket = "mayur-terraform-states"
+    key    = "Dev/VPC/terraform.tfstate"
+    region = "us-east-1"
+  }
+}
+
 # IAM Role for EKS Cluster
 resource "aws_iam_role" "eks_cluster_role" {
   name = "eks-cluster-role"
