@@ -1,3 +1,18 @@
+# ************************************************************
+# Terraform Backend Configuration - S3 + DynamoDB
+# ************************************************************
+
+terraform {
+  backend "s3" {
+    bucket         = "mayur-terraform-states"
+    key            = "Dev/VPC/terraform.tfstate"
+    region         = var.aws_region
+  }
+}
+
+
+
+
 #************************************************************
 # AWS VPC - Terraform Configuration
 #************************************************************

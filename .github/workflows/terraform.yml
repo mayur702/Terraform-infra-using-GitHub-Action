@@ -1,33 +1,24 @@
-name: Terraform VPC & EKS Deployment
+name: Terraform Infra Apply/Destroy
 
 on:
-  push:
-    branches:
-      - master
-    paths:
-      - 'Envrionment/**'
-      - '.github/workflows/terraform.yml'
   pull_request:
-    types: [opened, synchronize, reopened, closed]
-  workflow_dispatch:
+    types: [closed]
+    branches:
+      - main
 
 jobs:
-  terraform-vpc:
-    name: "Terraform Apply - VPC"
+  deploy:
+    if: github.event.pull_request.merged == true
     runs-on: ubuntu-latest
 
-    defaults:
-      run:
-        working-directory: Envrionment/Dev/VPC
-
     steps:
-      - name: Checkout Repository
+      - name: Checkout code
         uses: actions/checkout@v3
 
-      - name: Setup Terraform
-        uses: hashicorp/setup-terraform@v2
+      - name: Set up Terraform
+        uses: hashicorp/setup-terraform@v3
         with:
-          terraform_version: 1.6.6
+          terraform_version: 1.6.0
 
       - name: Configure AWS Credentials
         uses: aws-actions/configure-aws-credentials@v2
@@ -36,61 +27,34 @@ jobs:
           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           aws-region: ${{ secrets.AWS_REGION }}
 
-      - name: Terraform Init
-        run: terraform init
+      # ───── STEP 1: Apply or Destroy VPC ─────
+      - name: Init VPC
+        run: cd Environment/Dev/VPC && terraform init
 
-      - name: Terraform Validate
-        run: terraform validate
+      - name: Plan VPC
+        run: cd Environment/Dev/VPC && terraform plan
 
-      - name: Terraform Plan
-        run: terraform plan
+      - name: Apply or Destroy VPC
+        run: |
+          cd Environment/Dev/VPC
+          if [[ "${{ github.head_ref }}" == "apply" ]]; then
+            terraform apply -auto-approve
+          elif [[ "${{ github.head_ref }}" == "destroy" ]]; then
+            terraform destroy -auto-approve
+          fi
 
-      - name: Terraform Apply
-        if: github.event_name != 'pull_request' || github.event.action != 'closed'
-        run: terraform apply -auto-approve
+      # ───── STEP 2: Apply or Destroy EKS ─────
+      - name: Init EKS
+        run: cd Environment/Dev/EKS && terraform init
 
-      - name: Terraform Destroy
-        if: github.event_name == 'pull_request' && github.event.action == 'closed'
-        run: terraform destroy -auto-approve
+      - name: Plan EKS
+        run: cd Environment/Dev/EKS && terraform plan
 
-  terraform-eks:
-    name: "Terraform Apply - EKS"
-    runs-on: ubuntu-latest
-    needs: terraform-vpc
-
-    defaults:
-      run:
-        working-directory: Envrionment/Dev/EKS
-
-    steps:
-      - name: Checkout Repository
-        uses: actions/checkout@v3
-
-      - name: Setup Terraform
-        uses: hashicorp/setup-terraform@v2
-        with:
-          terraform_version: 1.6.6
-
-      - name: Configure AWS Credentials
-        uses: aws-actions/configure-aws-credentials@v2
-        with:
-          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
-          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-          aws-region: ${{ secrets.AWS_REGION }}
-
-      - name: Terraform Init
-        run: terraform init
-
-      - name: Terraform Validate
-        run: terraform validate
-
-      - name: Terraform Plan
-        run: terraform plan
-
-      - name: Terraform Apply
-        if: github.event_name != 'pull_request' || github.event.action != 'closed'
-        run: terraform apply -auto-approve
-
-      - name: Terraform Destroy
-        if: github.event_name == 'pull_request' && github.event.action == 'closed'
-        run: terraform destroy -auto-approve
+      - name: Apply or Destroy EKS
+        run: |
+          cd Environment/Dev/EKS
+          if [[ "${{ github.head_ref }}" == "apply" ]]; then
+            terraform apply -auto-approve
+          elif [[ "${{ github.head_ref }}" == "destroy" ]]; then
+            terraform destroy -auto-approve
+          fi
