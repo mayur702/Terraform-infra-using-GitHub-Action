@@ -2,13 +2,23 @@ provider "aws" {
   region = var.aws_region
 }
 
-# ✅ Add this: Remote state to fetch VPC outputs
+# 🔹 Fetch remote state from VPC
 data "terraform_remote_state" "vpc" {
   backend = "s3"
   config = {
     bucket = "mayur-terraform-states"
     key    = "Dev/VPC/terraform.tfstate"
     region = "us-east-1"
+  }
+}
+
+# 🔹 Dynamically construct EKS input using remote state
+locals {
+  eks_cluster = {
+    name    = var.eks_cluster.name
+    version = var.eks_cluster.version
+    subnets = data.terraform_remote_state.vpc.outputs.private_subnet_ids
+    vpc_id  = data.terraform_remote_state.vpc.outputs.vpc_id
   }
 }
 
@@ -34,12 +44,12 @@ resource "aws_iam_role_policy_attachment" "eks_cluster_policy" {
 
 # Create EKS Cluster
 resource "aws_eks_cluster" "eks_cluster" {
-  name     = var.eks_cluster.name
+  name     = local.eks_cluster.name
   role_arn = aws_iam_role.eks_cluster_role.arn
-  version  = var.eks_cluster.version
+  version  = local.eks_cluster.version
 
   vpc_config {
-    subnet_ids = data.terraform_remote_state.vpc.outputs.private_subnet_ids
+    subnet_ids = local.eks_cluster.subnets
   }
 
   depends_on = [aws_iam_role_policy_attachment.eks_cluster_policy]
@@ -80,7 +90,7 @@ resource "aws_eks_node_group" "eks_node_group" {
   cluster_name    = aws_eks_cluster.eks_cluster.name
   node_group_name = var.eks_node_group.name
   node_role_arn   = aws_iam_role.eks_node_role.arn
-  subnet_ids      = data.terraform_remote_state.vpc.outputs.private_subnet_ids
+  subnet_ids      = local.eks_cluster.subnets
   instance_types  = var.eks_node_group.instance_types
 
   scaling_config {
