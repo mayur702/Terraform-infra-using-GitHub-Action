@@ -2,13 +2,13 @@ provider "aws" {
   region = var.aws_region
 }
 
-# Fetch remote outputs from VPC module
+# ✅ Add this: Remote state to fetch VPC outputs
 data "terraform_remote_state" "vpc" {
   backend = "s3"
   config = {
     bucket = "mayur-terraform-states"
-    key    = "Dev/EKS/terraform.tfstate"
-    region = var.aws_region
+    key    = "Dev/VPC/terraform.tfstate"
+    region = "us-east-1"
   }
 }
 
