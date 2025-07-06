@@ -1,4 +1,4 @@
-name: Destroy EKS Only
+name: Destroy VPC Only
 
 on:
   pull_request:
@@ -7,8 +7,8 @@ on:
       - main
 
 jobs:
-  destroy-eks:
-    if: github.event.pull_request.merged == true && github.head_ref == 'destroy-eks'
+  destroy-vpc:
+    if: github.event.pull_request.merged == true && github.head_ref == 'destroy-vpc'
     runs-on: ubuntu-latest
 
     steps:
@@ -27,8 +27,8 @@ jobs:
           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           aws-region: ${{ secrets.AWS_REGION }}
 
-      - name: Destroy EKS
+      - name: Destroy VPC
         run: |
-          cd Environment/Dev/EKS
+          cd Environment/Dev/VPC
           terraform init
           terraform destroy -auto-approve
