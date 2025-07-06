@@ -2,16 +2,6 @@ provider "aws" {
   region = var.aws_region
 }
 
-# Fetch remote outputs from VPC module
-data "terraform_remote_state" "vpc" {
-  backend = "s3"
-  config = {
-    bucket = "mayur-terraform-states"
-    key    = "Dev/EKS/terraformeks.tfstate"
-    region = "us-east-1"
-  }
-}
-
 # IAM Role for EKS Cluster
 resource "aws_iam_role" "eks_cluster_role" {
   name = "eks-cluster-role"
