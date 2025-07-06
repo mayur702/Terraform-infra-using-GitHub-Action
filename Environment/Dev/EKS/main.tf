@@ -7,7 +7,7 @@ data "terraform_remote_state" "vpc" {
   backend = "s3"
   config = {
     bucket = "mayur-terraform-states"
-    key    = "Dev/EKS/terraform.tfstate"
+    key    = "Dev/EKS/terraformeks.tfstate"
     region = "us-east-1"
   }
 }
