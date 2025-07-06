@@ -1,0 +1,96 @@
+name: Terraform VPC & EKS Deployment
+
+on:
+  push:
+    branches:
+      - master
+    paths:
+      - 'Envrionment/**'
+      - '.github/workflows/terraform.yml'
+  pull_request:
+    types: [opened, synchronize, reopened, closed]
+  workflow_dispatch:
+
+jobs:
+  terraform-vpc:
+    name: "Terraform Apply - VPC"
+    runs-on: ubuntu-latest
+
+    defaults:
+      run:
+        working-directory: Envrionment/Dev/VPC
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v3
+
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v2
+        with:
+          terraform_version: 1.6.6
+
+      - name: Configure AWS Credentials
+        uses: aws-actions/configure-aws-credentials@v2
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ secrets.AWS_REGION }}
+
+      - name: Terraform Init
+        run: terraform init
+
+      - name: Terraform Validate
+        run: terraform validate
+
+      - name: Terraform Plan
+        run: terraform plan
+
+      - name: Terraform Apply
+        if: github.event_name != 'pull_request' || github.event.action != 'closed'
+        run: terraform apply -auto-approve
+
+      - name: Terraform Destroy
+        if: github.event_name == 'pull_request' && github.event.action == 'closed'
+        run: terraform destroy -auto-approve
+
+  terraform-eks:
+    name: "Terraform Apply - EKS"
+    runs-on: ubuntu-latest
+    needs: terraform-vpc
+
+    defaults:
+      run:
+        working-directory: Envrionment/Dev/EKS
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v3
+
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v2
+        with:
+          terraform_version: 1.6.6
+
+      - name: Configure AWS Credentials
+        uses: aws-actions/configure-aws-credentials@v2
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ secrets.AWS_REGION }}
+
+      - name: Terraform Init
+        run: terraform init
+
+      - name: Terraform Validate
+        run: terraform validate
+
+      - name: Terraform Plan
+        run: terraform plan
+
+      - name: Terraform Apply
+        if: github.event_name != 'pull_request' || github.event.action != 'closed'
+        run: terraform apply -auto-approve
+
+      - name: Terraform Destroy
+        if: github.event_name == 'pull_request' && github.event.action == 'closed'
+        run: terraform destroy -auto-approve
